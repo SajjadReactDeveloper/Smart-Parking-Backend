@@ -28,6 +28,14 @@ router.patch('/updateRole/:id', auth, authAdmin, userController.updateUsersRole)
 
 router.delete('/delete/:id', auth, authAdmin, userController.deleteUser);
 
+router.post('/google_login', userController.googleLogin);
 
+router.post('/addVehicle', userController.addVehicle);
+
+router.get('/viewVehicle', userController.viewVehicle);
+
+router.get('/addVehicleDb/:id', userController.addVehicleDB);
+
+router.get('/deleteVehicle/:id', userController.deleteVehicle);
 
 module.exports = router;

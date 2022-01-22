@@ -1,7 +1,12 @@
 const User = require('../models/User');
+const Vehicle = require('../models/Vehicle');
+const DummyVehicle = require('../models/DummyVehicle');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const sendMail = require('./sendMail')
+const sendMail = require('./sendMail');
+const { google } = require('googleapis');
+const { OAuth2 } = google.auth;
+const client = new OAuth2(process.env.MAILING_SERVICE_CLIENT_ID)
 const { CLIENT_URL } = process.env;
 
 exports.register = async(req, res, next) => {
@@ -180,6 +185,95 @@ exports.deleteUser = async(req, res) => {
         res.json({msg: "Deleted"})
     } catch (error) {
         return res.status(500).json({msg: error.message})
+    }
+}
+
+exports.addVehicle = async(req, res) => {
+    const {number, name, model, bookFrontImage, bookBackImage, ownerName, ownerCNIC } = req.body;
+    const newVehicle = new DummyVehicle({
+        number, name, model, ownerName, ownerCNIC, bookFrontImage, bookBackImage
+    })
+    await newVehicle.save();
+    res.json({msg: "Added"});
+}
+
+exports.viewVehicle = async(req, res) => {
+    try {
+        const vehicle = await DummyVehicle.find();
+        res.json(vehicle)
+    } catch (error) {
+        return res.status(500).json({msg: error.message})
+    }
+}
+
+exports.addVehicleDB = async(req, res) => {
+    const vehicle = await DummyVehicle.findById(req.params.id);
+    const {number, name, model, ownerName, ownerCNIC, bookFrontImage, bookBackImage} = vehicle;
+
+    const newVehicle = new Vehicle({
+        number, name, model, ownerName, ownerCNIC, bookFrontImage, bookBackImage
+    })
+    await newVehicle.save();
+
+    await DummyVehicle.findByIdAndDelete(req.params.id);
+    res.json({msg: "Your car has been Verified"});
+}
+
+exports.deleteVehicle = async = async(req, res) => {
+    const vehicle = await DummyVehicle.findById(req.params.id);
+    await DummyVehicle.findByIdAndDelete(req.params.id);
+    await Vehicle.findByIdAndDelete(req.params.id);
+    res.json({msg: "Your vehicles can't be Verified. Please contact to Admin"});
+}
+
+exports.googleLogin = async (req, res) => {
+    try {
+        const {tokenId} = req.body
+
+        const verify = await client.verifyIdToken({idToken: tokenId, audience: process.env.MAILING_SERVICE_CLIENT_ID})
+        
+        const {email_verified, email, name, picture} = verify.payload
+
+        const password = email + process.env.GOOGLE_SECRET
+
+        const passwordHash = await bcrypt.hash(password, 12)
+
+        if(!email_verified) return res.status(400).json({msg: "Email verification failed."})
+
+        const user = await User.findOne({email})
+
+        if(user){
+            // const isMatch = await bcrypt.compare(password, user.password)
+            // if(!isMatch) return res.status(400).json({msg: "Password is incorrect."})
+
+            const refresh_token = createRefreshToken({id: user._id})
+            res.cookie('refreshtoken', refresh_token, {
+                httpOnly: true,
+                path: '/user/refreshToken',
+                maxAge: 7*24*60*60*1000 // 7 days
+            })
+
+            res.json({msg: "Login success!"})
+        }else{
+            const newUser = new User({
+                name, email, password: passwordHash, avatar: picture
+            })
+
+            await newUser.save()
+            
+            const refresh_token = createRefreshToken({id: newUser._id})
+            res.cookie('refreshtoken', refresh_token, {
+                httpOnly: true,
+                path: '/user/refreshToken',
+                maxAge: 7*24*60*60*1000 // 7 days
+            })
+
+            res.json({msg: "Login success!"})
+        }
+
+
+    } catch (err) {
+        return res.status(500).json({msg: err.message})
     }
 }
 
