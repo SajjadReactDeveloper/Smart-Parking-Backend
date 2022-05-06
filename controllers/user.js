@@ -1,6 +1,4 @@
 const User = require('../models/User');
-const Vehicle = require('../models/Vehicle');
-const DummyVehicle = require('../models/DummyVehicle');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const sendMail = require('./sendMail');
@@ -8,39 +6,78 @@ const { google } = require('googleapis');
 const { OAuth2 } = google.auth;
 const client = new OAuth2(process.env.MAILING_SERVICE_CLIENT_ID)
 const { CLIENT_URL } = process.env;
+const mongoose = require('mongoose');
+const fetch = require('node-fetch')
+
+
+// exports.register = async(req, res, next) => {
+//     try {
+//         const {name, email, password} = req.body;
+//         console.log(name, email, password)
+//         if(!name || !email || !password){
+//             return res.status(400).json({msg: "Please Fill all Fields"})
+//         }
+        
+//         if(!validateEmail(email)){
+//             return res.status(400).json({msg: "Invalid Email"})
+//         }
+        
+//         // const user = await User.findOne({email});
+//         // if(user){
+//         //     return res.status(400).json({msg: "Email Already exist"})
+//         // } 
+
+//         if(password.length < 6){
+//             return res.status(400).json({msg: "Password should be atlest 6 characters"})
+//         }
+
+//         const HashPassword = await bcrypt.hash(password, 12);
+
+//         const newUser = {
+//             name, email, password: HashPassword
+//         }
+        
+//         const activationToken = createActivationToken(newUser);
+//         console.log(activationToken);
+//         const url = `${CLIENT_URL}/user/activate/${activationToken}`
+//         sendMail(email, url, "Verify Your Email Address")
+
+//         res.json({msg: "Register Success! Please Activate your Account to start"})       
+//     } catch (error) {
+//         return res.status(500).json({msg: error.message})
+//     }
+// }
 
 exports.register = async(req, res, next) => {
     try {
         const {name, email, password} = req.body;
+        const {role} = req.body || 0;
+        console.log(name, email, password, role)
         if(!name || !email || !password){
-            res.status(400).json({msg: "Please Fill all Fields"})
+            return res.status(400).json({msg: "Please Fill all Fields"})
         }
         
         if(!validateEmail(email)){
-            res.status(400).json({msg: "Invalid Email"})
+            return res.status(400).json({msg: "Invalid Email"})
         }
         
-        // const user = User.findOne({email});
+        // const user = await User.findOne({email});
         // if(user){
-        //     res.status(400).json({msg: "Email Already exist"})
+        //     return res.status(400).json({msg: "Email Already exist"})
         // } 
 
         if(password.length < 6){
-            res.status(400).json({msg: "Password should be atlest 6 characters"})
+            return res.status(400).json({msg: "Password should be atlest 6 characters"})
         }
 
         const HashPassword = await bcrypt.hash(password, 12);
 
-        const newUser = {
-            name, email, password: HashPassword
-        }
-        
-        const activationToken = createActivationToken(newUser);
-        
-        const url = `${CLIENT_URL}/user/activate/${activationToken}`
-        sendMail(email, url, "Verify Your Email Address")
+        const newUser = new User ({
+            name, email, password:HashPassword, role
+        });
+        await newUser.save();
 
-        res.json({msg: "Register Success! Please Activate your Account to start"})       
+        res.json({msg: "Account has been Created"})       
     } catch (error) {
         return res.status(500).json({msg: error.message})
     }
@@ -82,6 +119,26 @@ exports.login = async(req, res) => {
         })
         res.json({msg: "Login Successfull!"})
         
+    } catch (error) {
+        return res.status(500).json({msg: error.message})
+    }
+}
+
+exports.updateUserMessage = async (req, res) => {
+    try {
+        console.log(req.params.id)
+        await User.findByIdAndUpdate(req.params.id, {message: true});
+        res.json({msg: 'Updated'});
+    } catch (error) {
+        return res.status(500).json({msg: error.message})
+    }
+}
+
+exports.updateUserMessageFalse = async (req, res) => {
+    try {
+        console.log(req.params.id)
+        await User.findByIdAndUpdate(req.params.id, {message: false});
+        res.json({msg: 'Updated'});
     } catch (error) {
         return res.status(500).json({msg: error.message})
     }
@@ -131,6 +188,15 @@ exports.resetPassword = async(req, res) => {
 exports.getUserInfo = async(req, res) => {
     try {
         const user = await User.findById(req.user.id).select('-password');
+        res.json(user)
+    } catch (error) {
+        return res.status(500).json({msg: error.message})
+    }
+}
+
+exports.getSpecificUser = async(req, res) => {
+    try {
+        const user = await User.findById(req.params.id).select('-password');
         res.json(user)
     } catch (error) {
         return res.status(500).json({msg: error.message})
@@ -188,44 +254,6 @@ exports.deleteUser = async(req, res) => {
     }
 }
 
-exports.addVehicle = async(req, res) => {
-    const {number, name, model, bookFrontImage, bookBackImage, ownerName, ownerCNIC } = req.body;
-    const newVehicle = new DummyVehicle({
-        number, name, model, ownerName, ownerCNIC, bookFrontImage, bookBackImage
-    })
-    await newVehicle.save();
-    res.json({msg: "Added"});
-}
-
-exports.viewVehicle = async(req, res) => {
-    try {
-        const vehicle = await DummyVehicle.find();
-        res.json(vehicle)
-    } catch (error) {
-        return res.status(500).json({msg: error.message})
-    }
-}
-
-exports.addVehicleDB = async(req, res) => {
-    const vehicle = await DummyVehicle.findById(req.params.id);
-    const {number, name, model, ownerName, ownerCNIC, bookFrontImage, bookBackImage} = vehicle;
-
-    const newVehicle = new Vehicle({
-        number, name, model, ownerName, ownerCNIC, bookFrontImage, bookBackImage
-    })
-    await newVehicle.save();
-
-    await DummyVehicle.findByIdAndDelete(req.params.id);
-    res.json({msg: "Your car has been Verified"});
-}
-
-exports.deleteVehicle = async = async(req, res) => {
-    const vehicle = await DummyVehicle.findById(req.params.id);
-    await DummyVehicle.findByIdAndDelete(req.params.id);
-    await Vehicle.findByIdAndDelete(req.params.id);
-    res.json({msg: "Your vehicles can't be Verified. Please contact to Admin"});
-}
-
 exports.googleLogin = async (req, res) => {
     try {
         const {tokenId} = req.body
@@ -257,6 +285,57 @@ exports.googleLogin = async (req, res) => {
         }else{
             const newUser = new User({
                 name, email, password: passwordHash, avatar: picture
+            })
+
+            await newUser.save()
+            
+            const refresh_token = createRefreshToken({id: newUser._id})
+            res.cookie('refreshtoken', refresh_token, {
+                httpOnly: true,
+                path: '/user/refreshToken',
+                maxAge: 7*24*60*60*1000 // 7 days
+            })
+
+            res.json({msg: "Login success!"})
+        }
+
+
+    } catch (err) {
+        return res.status(500).json({msg: err.message})
+    }
+}
+
+exports.facebookLogin = async (req, res) => {
+    try {
+        const {accessToken, userID} = req.body
+
+        const URL = `https://graph.facebook.com/v2.9/${userID}/?fields=id,name,email,picture&access_token=${accessToken}`
+        
+        const data = await fetch(URL).then(res => res.json()).then(res => {return res})
+
+        const {email, name, picture} = data
+
+        const password = email + process.env.FACEBOOK_SECRET
+
+        const passwordHash = await bcrypt.hash(password, 12)
+
+        const user = await User.findOne({email})
+
+        if(user){
+            // const isMatch = await bcrypt.compare(password, user.password)
+            // if(!isMatch) return res.status(400).json({msg: "Password is incorrect."})
+
+            const refresh_token = createRefreshToken({id: user._id})
+            res.cookie('refreshtoken', refresh_token, {
+                httpOnly: true,
+                path: '/user/refreshToken',
+                maxAge: 7*24*60*60*1000 // 7 days
+            })
+
+            res.json({msg: "Login success!"})
+        }else{
+            const newUser = new User({
+                name, email, password: passwordHash, avatar: picture.data.url
             })
 
             await newUser.save()

@@ -23,6 +23,10 @@ const userSchema = new mongoose.Schema({
     avatar: {
         type: String,
         default: "https://res.cloudinary.com/djhdfdrld/image/upload/v1642513628/sample.jpg"
+    },
+    message: {
+        type: Boolean,
+        default: false
     }
 }, {
     timestamps: true
