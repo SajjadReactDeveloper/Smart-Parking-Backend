@@ -2,11 +2,14 @@ const Complaint = require('../models/Complaints');
 
 exports.addComplaint = async(req, res) => {
     try {
-        const {category, subCategory, type, title, description, userId} = req.body;
-        console.log(category, subCategory, type, title, description, userId)
+        // const {category, subCategory, type, title, description, userId} = req.body;
+        const {type, title, description, userId} = req.body;
 
+        // const complaint = new Complaint({
+        //     category, subCategory, type, title, description, userId
+        // })
         const complaint = new Complaint({
-            category, subCategory, type, title, description, userId
+            type, title, description, userId
         })
         complaint.save();
         res.json({msg: "Your Complaint has been registered"});
@@ -31,6 +34,7 @@ exports.a = async (req, res) => {
 
 exports.viewSpecificComplaint = async (req, res) => {
     try {
+        console.log(req.params.id)
         const complaint = await Complaint.find({userId: req.params.id});
         res.json(complaint)
     } catch (error) {

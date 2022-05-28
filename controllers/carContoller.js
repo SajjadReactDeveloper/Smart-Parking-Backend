@@ -4,7 +4,7 @@ const ApprovedCars = require('../models/ApprovedCars');
 exports.addCar = async (req, res) => {
     try {
         const {regNo, brand, model, color, ownerName, ownerId, ownerAvatar, carImage} = req.body;
-        console.log(regNo, brand, model, color, ownerId)
+        console.log(regNo, brand, model, color, ownerId, carImage)
         const newCar = new Car({
             regNo, brand, model, color, ownerName, ownerId, ownerAvatar, carImage
         })

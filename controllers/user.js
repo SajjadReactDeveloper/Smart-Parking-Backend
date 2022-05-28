@@ -50,32 +50,33 @@ const fetch = require('node-fetch')
 
 exports.register = async(req, res, next) => {
     try {
-        const {name, email, password} = req.body;
-        const {role} = req.body || 0;
-        console.log(name, email, password, role)
+        const {name, email, password } = req.body;
+        
         if(!name || !email || !password){
-            return res.status(400).json({msg: "Please Fill all Fields"})
+            return res.json({msg: "Please Fill all Fields"})
         }
         
         if(!validateEmail(email)){
-            return res.status(400).json({msg: "Invalid Email"})
+            return res.json({msg: "Invalid Email"})
         }
         
-        // const user = await User.findOne({email});
-        // if(user){
-        //     return res.status(400).json({msg: "Email Already exist"})
-        // } 
+        const user = await User.findOne({email});
+        if(user){
+            return res.json({msg: "Email Already exist"})
+        } 
 
         if(password.length < 6){
-            return res.status(400).json({msg: "Password should be atlest 6 characters"})
+            return res.json({msg: "Password should be atlest 6 characters"})
         }
 
         const HashPassword = await bcrypt.hash(password, 12);
+        console.log(HashPassword)
 
         const newUser = new User ({
-            name, email, password:HashPassword, role
+            name, email, password:HashPassword
         });
         await newUser.save();
+        console.log(newUser)
 
         res.json({msg: "Account has been Created"})       
     } catch (error) {
@@ -109,15 +110,14 @@ exports.login = async(req, res) => {
         if(!user) return res.status(400).json({msg: "This Email does not exist"})
         
         const isMatch = await bcrypt.compare(password, user.password);
-        if(!isMatch) return res.status(400).json({msg: "Password is incorrect"})
+        if(!isMatch) return res.json({msg: "Password is incorrect"})
         const refreshToken = createRefreshToken({id: user._id})
-        console.log(refreshToken);
         res.cookie('refreshtoken', refreshToken, {
             httpOnly: true,
             path: '/user/refreshToken',
             maxAge: 7*24*60*60*1000 //7 days 
         })
-        res.json({msg: "Login Successfull!"})
+        res.json({msg: "Login Successfull!", token: refreshToken})
         
     } catch (error) {
         return res.status(500).json({msg: error.message})
@@ -175,6 +175,7 @@ exports.forgotPassword = async(req, res) => {
 exports.resetPassword = async(req, res) => {
     try {
         const {password} = req.body;
+        console.log(password)
         const passwordHash = await bcrypt.hash(password, 12);
         await User.findOneAndUpdate({_id: req.user.id}, {
             password: passwordHash
@@ -224,6 +225,7 @@ exports.logout = (req, res) => {
 exports.updateUser = async(req, res) => {
     try {
         const {name, avatar} = req.body;
+        console.log(name, avatar)
         await User.findOneAndUpdate({_id: req.user.id}, {
             name, avatar
         })

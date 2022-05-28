@@ -16,6 +16,7 @@ exports.addResponse = async (req, res) => {
 exports.viewSpecificResponse = async(req, res) => {
     try {
         const {userId, complaintId} = req.body;
+        console.log(userId, complaintId)
         const response = await Response.findOne({$and: [{userId: userId}, {complaintId: complaintId}]});
         res.json(response)
     } catch (error) {

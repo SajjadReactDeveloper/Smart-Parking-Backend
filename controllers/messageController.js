@@ -3,6 +3,7 @@ const User = require('../models/User');
 
 exports.NewMessage = async(req, res) => {
     const dbMessage = req.body;
+    console.log(dbMessage)
     Message.create(dbMessage, (err, data) => {
         if(err){
             res.status(500).send(err)

@@ -1,16 +1,16 @@
 const mongoose = require('mongoose');
 
 const complaintSchema = new mongoose.Schema({
-    category: {
-        type: String,
-        required: [true, "Please Enter Complaint Category"],
-        trim: true
-    },
-    subCategory: {
-        type: String,
-        required: [true, "Please Enter Complaint Sub Category"],
-        trim: true,
-    },
+    // category: {
+    //     type: String,
+    //     required: [true, "Please Enter Complaint Category"],
+    //     trim: true
+    // },
+    // subCategory: {
+    //     type: String,
+    //     required: [true, "Please Enter Complaint Sub Category"],
+    //     trim: true,
+    // },
     type: {
         type: String,
         required: [true, "Please Enter Type"],
